@@ -7,7 +7,7 @@ My personal configuration for the [pi](https://github.com/earendil-works/pi) cod
 | Path | What |
 |---|---|
 | `settings.json` | Global pi settings (default model, installed packages) |
-| `mcp.json` | MCP servers (Context7 for current library docs) |
+| `mcp.json` | MCP servers: Context7 (current library docs), browser (Chrome DevTools, isolated profile) |
 | `extensions/` | Global extensions |
 | `skills/` | Global skills |
 | `agents/` | Subagent definitions (for [pi-interactive-subagents](https://github.com/amosblomqvist/pi-interactive-subagents)) |
@@ -23,7 +23,7 @@ My personal configuration for the [pi](https://github.com/earendil-works/pi) cod
 | `notes` | Write lesson notes to Trilium and a local markdown file |
 | `visualize` | Add diagrams to lessons |
 
-`code-coach` is backed by the `coach-guard` extension: in any project with a `.coach/` folder, the agent can only write inside `.coach/` and run read or check commands. `/coach on|off` toggles it.
+`code-coach` is backed by the `coach-guard` extension: in any project with a `.coach/` folder, the agent can only write inside `.coach/` and run read or check commands. `/coach on|off` toggles it. It uses the `browser` MCP to look at the running app, read console errors, and inspect API calls.
 
 ## Install
 
