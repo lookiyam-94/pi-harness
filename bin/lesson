@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# lesson - write lesson material to a local markdown file and a Trilium note
+# at the same time, so the two never drift.
+#
+#   lesson start "Topic"   < intro    create both, remember them as current
+#   lesson log             < text     append to both
+#   lesson where                      print the current file and noteId
+#
+# Env:
+#   LESSON_DIR   where markdown files go (default: ~/Notes/Learn)
+#   plus everything the `trilium` script reads
+
+set -euo pipefail
+
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/trilium/env"
+# shellcheck source=/dev/null
+if [ -f "$CONF" ]; then . "$CONF"; fi
+
+LESSON_DIR="${LESSON_DIR:-$HOME/Notes/Learn}"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/lesson"
+CURRENT="$STATE_DIR/current"
+mkdir -p "$LESSON_DIR" "$STATE_DIR"
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  lesson start "Topic"   < intro    create local file + Trilium note
+  lesson log             < text     append to both
+  lesson where                      print current file and noteId
+EOF
+  exit 1
+}
+
+slug() {
+  printf '%s' "$1" |
+    tr '[:upper:]' '[:lower:]' |
+    sed -e 's/[^a-z0-9]\+/-/g' -e 's/^-//' -e 's/-$//'
+}
+
+load_current() {
+  [ -f "$CURRENT" ] || {
+    echo "lesson: no lesson started (run 'lesson start')" >&2
+    exit 1
+  }
+  { read -r FILE; read -r NOTE; } <"$CURRENT"
+}
+
+cmd_start() {
+  [ $# -ge 1 ] || usage
+  local title="$1" body file note
+  body="$(cat)"
+  file="$LESSON_DIR/$(slug "$title").md"
+
+  if [ ! -e "$file" ]; then
+    printf '# %s\n\n' "$title" >"$file"
+  fi
+  printf '%s\n\n' "$body" >>"$file"
+
+  note="$(printf '# %s\n\n%s\n' "$title" "$body" | trilium new "$title")"
+  printf '%s\n%s\n' "$file" "$note" >"$CURRENT"
+
+  printf 'file=%s\nnote=%s\n' "$file" "$note"
+}
+
+cmd_log() {
+  load_current
+  local body
+  body="$(cat)"
+  printf '%s\n\n' "$body" >>"$FILE"
+  printf '%s' "$body" | trilium append "$NOTE" >/dev/null
+}
+
+cmd_where() {
+  load_current
+  printf 'file=%s\nnote=%s\n' "$FILE" "$NOTE"
+}
+
+case "${1:-}" in
+  start) shift; cmd_start "$@" ;;
+  log) shift; cmd_log ;;
+  where) shift; cmd_where ;;
+  *) usage ;;
+esac

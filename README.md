@@ -83,6 +83,7 @@ Used through [pi-interactive-subagents](https://github.com/amosblomqvist/pi-inte
 | `learn/` | The learning system, loaded as a local pi package: `skills/`, `extensions/`, `agents/` |
 | `agents/` | Links to `learn/agents/`, where pi-interactive-subagents looks for global agents |
 | `extensions/` | Other global extensions |
+| `bin/` | `lesson` and `trilium` command-line tools used by the `notes` and `drill` skills |
 
 ## Install
 
@@ -93,7 +94,17 @@ git clone https://github.com/lookiyam-94/pi-harness ~/.pi/agent
 Then:
 
 - Log in to a model provider with pi. Keys are stored in `auth.json`, which is never committed.
-- The `notes` and `drill` skills call two small command-line tools, `lesson` and `trilium`, which are not in this repo. They need a [Trilium](https://github.com/TriliumNext/Trilium) server.
+- The `notes` and `drill` skills use the `lesson` and `trilium` tools in `bin/` (they need `curl` and `jq`, and a [Trilium](https://github.com/TriliumNext/Trilium) server). Put them on your PATH and configure Trilium:
+
+  ```bash
+  ln -s ~/.pi/agent/bin/lesson ~/.pi/agent/bin/trilium ~/.local/bin/
+  mkdir -p ~/.config/trilium
+  cp ~/.pi/agent/bin/trilium.env.example ~/.config/trilium/env
+  chmod 600 ~/.config/trilium/env   # then add your URL and ETAPI token
+  trilium ping
+  ```
+
+  Local lesson files go to `~/Notes/Learn` unless you set `LESSON_DIR`.
 - The `browser` MCP expects Chromium at `/usr/bin/chromium`. Change the path in `mcp.json` if yours is elsewhere.
 
 ## Not tracked

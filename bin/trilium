@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# trilium - minimal ETAPI client for use as a pi skill
+#
+# Env:
+#   TRILIUM_URL        base URL, e.g. https://trilium.example.com
+#   TRILIUM_TOKEN      ETAPI token (Options -> ETAPI in Trilium)
+#   TRILIUM_PARENT     noteId lessons are created under (default: root)
+#   TRILIUM_NOTE_TYPE  note type (default: markdown)
+#   TRILIUM_NOTE_MIME  mime type (default: text/x-markdown)
+#
+# Read from ~/.config/trilium/env when present (see trilium.env.example).
+
+set -euo pipefail
+
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/trilium/env"
+# shellcheck source=/dev/null
+if [ -f "$CONF" ]; then . "$CONF"; fi
+
+: "${TRILIUM_URL:?set TRILIUM_URL}"
+: "${TRILIUM_TOKEN:?set TRILIUM_TOKEN}"
+PARENT="${TRILIUM_PARENT:-root}"
+NOTE_TYPE="${TRILIUM_NOTE_TYPE:-markdown}"
+NOTE_MIME="${TRILIUM_NOTE_MIME:-text/x-markdown}"
+
+api() {
+  local method="$1" path="$2"
+  shift 2
+  curl -fsS -X "$method" "${TRILIUM_URL%/}/etapi${path}" \
+    -H "Authorization: ${TRILIUM_TOKEN}" "$@"
+}
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  trilium new "Title"        < body.md    create a note, prints its noteId
+  trilium append <noteId>    < more.md    append to an existing note
+  trilium get <noteId>                    print a note's raw content
+  trilium search "query"                  search under the parent note
+  trilium ping                            check URL and token
+EOF
+  exit 1
+}
+
+cmd_ping() {
+  api GET /app-info | head -c 400
+  echo
+}
+
+cmd_new() {
+  [ $# -ge 1 ] || usage
+  local title="$1" content
+  content="$(cat)"
+  jq -n \
+    --arg p "$PARENT" --arg t "$title" \
+    --arg ty "$NOTE_TYPE" --arg m "$NOTE_MIME" --arg c "$content" \
+    '{parentNoteId:$p, title:$t, type:$ty, mime:$m, content:$c}' |
+    api POST /create-note -H 'Content-Type: application/json' -d @- |
+    jq -r '.note.noteId'
+}
+
+cmd_append() {
+  [ $# -ge 1 ] || usage
+  local id="$1" addition current
+  addition="$(cat)"
+  current="$(api GET "/notes/${id}/content")"
+  printf '%s\n\n%s' "$current" "$addition" |
+    api PUT "/notes/${id}/content" \
+      -H 'Content-Type: text/plain' --data-binary @- >/dev/null
+  echo "$id"
+}
+
+cmd_get() {
+  [ $# -ge 1 ] || usage
+  api GET "/notes/$1/content"
+}
+
+cmd_search() {
+  [ $# -ge 1 ] || usage
+  local q
+  q="$(jq -rn --arg q "$1" '$q|@uri')"
+  api GET "/notes?search=${q}&ancestorNoteId=${PARENT}&limit=20" |
+    jq -r '.results[] | "\(.noteId)\t\(.title)"'
+}
+
+case "${1:-}" in
+  ping) shift; cmd_ping ;;
+  new) shift; cmd_new "$@" ;;
+  append) shift; cmd_append "$@" ;;
+  get) shift; cmd_get "$@" ;;
+  search) shift; cmd_search "$@" ;;
+  *) usage ;;
+esac
