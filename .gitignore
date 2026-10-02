@@ -1,0 +1,18 @@
+# Allowlist: ignore everything, then opt in to what is safe to share.
+# Never share: auth.json (API keys), sessions/, trust.json, models-store.json
+/*
+!/.gitignore
+!/README.md
+!/settings.json
+!/agents/
+!/extensions/
+!/learn/
+!/skills/
+# Omarchy-provided skills are symlinks into /usr/share/omarchy
+/skills/omarchy
+/skills/diagnose-crash
+
+node_modules/
+.env*
+*.key
+*.pem

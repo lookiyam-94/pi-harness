@@ -1,0 +1,17 @@
+{
+  "lastChangelogVersion": "0.99.2",
+  "theme": "dark",
+  "defaultProvider": "openrouter",
+  "defaultModel": "~deepseek/deepseek-pro-latest",
+  "packages": [
+    "https://github.com/amosblomqvist/pi-interactive-subagents",
+    "learn"
+  ],
+  "compaction": {
+    "enabled": true
+  },
+  "retry": {
+    "enabled": true
+  },
+  "hideThinkingBlock": true
+}
