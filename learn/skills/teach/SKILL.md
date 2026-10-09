@@ -86,7 +86,7 @@ If, reading the finished set cold, you can still tell which is right without kno
 
 **First action of every session, before the probe:** search for earlier work
 on the topic, then open the lesson with `lesson start` (see the `notes` skill).
-This creates the local markdown file and the Trilium note together. Do not
+This creates the local markdown file and today's Trilium session note (under the topic's main note) together. Do not
 defer it until the plan is approved. The probe is the most valuable record in
 the session and must not be lost.
 
@@ -139,7 +139,7 @@ A good plan is what makes the teaching feel inevitable instead of arbitrary.
 
 **Then stop and wait for his go-ahead.** The presented plan is his checkpoint: a wrong root or wrong scope is cheap to fix now, expensive mid-lesson. Do not begin Phase 3 until he okays the plan.
 
-Once he okays it, create the Trilium note (see *Writing the lesson down*) and save the dependency map alongside it as a rendering diagram note, so the map survives the session.
+Once he okays it, save the dependency map with `lesson diagram "map"` (see the `notes` skill), so it survives the session as a rendered note under the topic.
 
 ### Phase 3 — Teach (the loop)
 
@@ -169,4 +169,4 @@ These are two different surfaces and they render differently. Write for each.
 **In Trilium notes**, lesson notes are stored as markdown *source*, so neither LaTeX nor fenced mermaid renders — he sees the raw text. Two consequences:
 
 - Keep heavy notation out of anything you append. Prefer prose and simple inline expressions; when notation is unavoidable, still write it as LaTeX rather than a plain-text approximation, since it stays readable and will render if he later converts the note.
-- Diagrams do not go inside the lesson note. Create them as their own rendering note, as described in the `notes` skill, and reference them from the lesson note by title.
+- Diagrams go through `lesson diagram`, which also keeps them as rendered mermaid notes under the topic's main note, as described in the `notes` skill.

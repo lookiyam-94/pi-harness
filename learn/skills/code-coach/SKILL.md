@@ -47,8 +47,9 @@ Two kinds of record, each in one place only:
 | Project working state: plan, milestone briefs, progress | `.coach/` in the project, committed with the code | `write` / `edit` |
 
 Never copy `.coach/` state into the lesson note; link the project path
-instead. Diagrams (like the milestone map) go in their own Trilium note, as
-the `notes` skill describes.
+instead. In Trilium the lesson title is a main note with one child note per
+session, and diagrams (like the milestone map) are mermaid child notes made
+with `lesson diagram`, as the `notes` skill describes.
 
 `.coach/` layout:
 
@@ -65,10 +66,11 @@ the `notes` skill describes.
 
 **If `.coach/progress.md` exists**, you are resuming. Read `progress.md`,
 `plan.md`, the current milestone brief, and `git log --oneline -15` plus the
-latest diff. Read the earlier lesson notes (`trilium search`, `trilium get`),
-then run `lesson start` with the lesson title recorded in `progress.md` and a
-`## Session <date>` heading as the body. The local `.md` keeps growing as one
-file; Trilium gets one note per session under that title. Recap in two or
+latest diff. Read the earlier lesson notes: find the main note with
+`trilium find "<lesson title>"`, list its sessions with `trilium children`,
+and `trilium get` the latest one or two. Then run `lesson start` with the
+lesson title recorded in `progress.md`; it opens today's session note under
+the main note and adds the session heading to the local `.md`. Recap in two or
 three sentences where they are and what is next, then continue the build
 loop.
 
@@ -160,7 +162,7 @@ Present the plan in chat: a few sentences on the approach and why, then the
 milestone map as a small `mermaid` graph (concepts per milestone, ending at the
 finished project). Wait for their go-ahead. Then write `.coach/plan.md`, a
 brief per milestone in `.coach/milestones/`, and `progress.md`; log the plan
-with `lesson log`; save the map as its own Trilium diagram note.
+with `lesson log`; save the map with `lesson diagram "milestone map"`.
 
 A milestone brief contains:
 
@@ -263,5 +265,5 @@ you said earlier, correct it plainly.
 ## Formatting
 
 In chat, code goes in fenced blocks with a language tag. Keep examples short.
-In lesson notes, short code snippets are fine; diagrams go in their own
-Trilium note.
+In lesson notes, short code snippets are fine; diagrams go through
+`lesson diagram`.

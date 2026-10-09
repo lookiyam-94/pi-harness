@@ -9,6 +9,7 @@
 #   TRILIUM_NOTE_MIME  mime type (default: text/x-markdown)
 #
 # Read from ~/.config/trilium/env when present (see trilium.env.example).
+# The -p and -t flags override these per call.
 
 set -euo pipefail
 
@@ -32,13 +33,44 @@ api() {
 usage() {
   cat >&2 <<'EOF'
 usage:
-  trilium new "Title"        < body.md    create a note, prints its noteId
-  trilium append <noteId>    < more.md    append to an existing note
-  trilium get <noteId>                    print a note's raw content
-  trilium search "query"                  search under the parent note
-  trilium ping                            check URL and token
+  trilium new [-p parent] [-t type] "Title"     < body   create a note, prints its noteId
+  trilium ensure [-p parent] [-t type] "Title"  < body   find a note by exact title under
+                                                         parent (any depth), or create it
+                                                         with body; prints its noteId
+  trilium find [-p parent] "Title"                       noteId of the note with this exact
+                                                         title under parent, if any
+  trilium append <noteId>   < more   append to an existing note
+  trilium set <noteId>      < body   replace a note's content
+  trilium get <noteId>               print a note's raw content
+  trilium children <noteId>          list a note's children
+  trilium move <noteId> <parent>     move a note under a new parent
+  trilium search "query"             search under the parent note
+  trilium ping                       check URL and token
+
+  -p parent   noteId to create under or search in (default: TRILIUM_PARENT)
+  -t type     markdown (default) or mermaid
 EOF
   exit 1
+}
+
+# Parse -p / -t into PARENT, NOTE_TYPE, NOTE_MIME; leaves the rest in ARGS.
+parse_flags() {
+  ARGS=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -p) [ $# -ge 2 ] || usage; PARENT="$2"; shift 2 ;;
+      -t)
+        [ $# -ge 2 ] || usage
+        case "$2" in
+          markdown) NOTE_TYPE=code; NOTE_MIME=text/x-markdown ;;
+          mermaid) NOTE_TYPE=mermaid; NOTE_MIME=text/mermaid ;;
+          *) echo "trilium: unknown type '$2'" >&2; exit 1 ;;
+        esac
+        shift 2
+        ;;
+      *) ARGS+=("$1"); shift ;;
+    esac
+  done
 }
 
 cmd_ping() {
@@ -46,16 +78,43 @@ cmd_ping() {
   echo
 }
 
-cmd_new() {
-  [ $# -ge 1 ] || usage
-  local title="$1" content
-  content="$(cat)"
+create() {
+  local title="$1" content="$2"
   jq -n \
     --arg p "$PARENT" --arg t "$title" \
     --arg ty "$NOTE_TYPE" --arg m "$NOTE_MIME" --arg c "$content" \
     '{parentNoteId:$p, title:$t, type:$ty, mime:$m, content:$c}' |
     api POST /create-note -H 'Content-Type: application/json' -d @- |
     jq -r '.note.noteId'
+}
+
+# noteId of the first note under PARENT whose title is exactly $1.
+find_title() {
+  local title="$1" q
+  q="$(jq -rn --arg t "$title" '"note.title = \"\($t | gsub("\""; "\\\""))\"" | @uri')"
+  api GET "/notes?search=${q}&ancestorNoteId=${PARENT}&limit=50" |
+    jq -r --arg t "$title" '[.results[] | select(.title == $t)][0].noteId // empty'
+}
+
+cmd_new() {
+  parse_flags "$@"
+  [ ${#ARGS[@]} -ge 1 ] || usage
+  create "${ARGS[0]}" "$(cat)"
+}
+
+cmd_ensure() {
+  parse_flags "$@"
+  [ ${#ARGS[@]} -ge 1 ] || usage
+  local id body
+  body="$(cat)"
+  id="$(find_title "${ARGS[0]}")"
+  if [ -n "$id" ]; then echo "$id"; else create "${ARGS[0]}" "$body"; fi
+}
+
+cmd_find() {
+  parse_flags "$@"
+  [ ${#ARGS[@]} -ge 1 ] || usage
+  find_title "${ARGS[0]}"
 }
 
 cmd_append() {
@@ -69,9 +128,36 @@ cmd_append() {
   echo "$id"
 }
 
+cmd_set() {
+  [ $# -ge 1 ] || usage
+  api PUT "/notes/$1/content" \
+    -H 'Content-Type: text/plain' --data-binary @- >/dev/null
+  echo "$1"
+}
+
 cmd_get() {
   [ $# -ge 1 ] || usage
   api GET "/notes/$1/content"
+}
+
+cmd_children() {
+  [ $# -ge 1 ] || usage
+  local child
+  for child in $(api GET "/notes/$1" | jq -r '.childNoteIds[]'); do
+    api GET "/notes/$child" | jq -r '"\(.noteId)\t\(.title)"'
+  done
+}
+
+cmd_move() {
+  [ $# -ge 2 ] || usage
+  local id="$1" parent="$2" old
+  old="$(api GET "/notes/$id" | jq -r '.parentBranchIds[]')"
+  jq -n --arg n "$id" --arg p "$parent" '{noteId:$n, parentNoteId:$p}' |
+    api POST /branches -H 'Content-Type: application/json' -d @- >/dev/null
+  for branch in $old; do
+    [ "$branch" = "${parent}_${id}" ] || api DELETE "/branches/$branch" >/dev/null
+  done
+  echo "$id"
 }
 
 cmd_search() {
@@ -85,8 +171,13 @@ cmd_search() {
 case "${1:-}" in
   ping) shift; cmd_ping ;;
   new) shift; cmd_new "$@" ;;
+  ensure) shift; cmd_ensure "$@" ;;
+  find) shift; cmd_find "$@" ;;
   append) shift; cmd_append "$@" ;;
+  set) shift; cmd_set "$@" ;;
   get) shift; cmd_get "$@" ;;
+  children) shift; cmd_children "$@" ;;
+  move) shift; cmd_move "$@" ;;
   search) shift; cmd_search "$@" ;;
   *) usage ;;
 esac

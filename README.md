@@ -40,7 +40,7 @@ Re-tests material you were already taught, starting with the questions you got w
 
 ### `notes` — lesson notes in two places
 
-Writes every lesson to a local markdown file (which shows code, LaTeX and mermaid diagrams properly) and a Trilium note (which syncs to your phone) in one command, so the two never disagree. It records each probe question, quiz miss, plan and explanation as the lesson happens, not as a summary at the end.
+Writes every lesson to a local markdown file (which shows code, LaTeX and mermaid diagrams properly) and Trilium (which syncs to your phone) in one command, so the two never disagree. In Trilium each topic is a main note with one child note per session, plus rendered mermaid notes for its diagrams. It records each probe question, quiz miss, plan and explanation as the lesson happens, not as a summary at the end.
 
 ### `visualize` — diagrams that are correct
 

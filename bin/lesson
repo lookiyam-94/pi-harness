@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
-# lesson - write lesson material to a local markdown file and a Trilium note
-# at the same time, so the two never drift.
+# lesson - write lesson material to a local markdown file and Trilium at the
+# same time, so the two never drift.
 #
-#   lesson start "Topic"   < intro    create both, remember them as current
-#   lesson log             < text     append to both
-#   lesson where                      print the current file and noteId
+# Trilium holds one main note per topic with one child note per session:
+#
+#   Topic                 main note (found by title anywhere under
+#   ├── Topic - map       TRILIUM_PARENT, so it can be moved freely)
+#   ├── Session 2026-10-03
+#   └── Session 2026-10-10
+#
+# The local file is one growing markdown file per topic.
+#
+#   lesson start "Topic"     < intro     open today's session, remember it
+#   lesson log               < text      append to the file and session note
+#   lesson diagram "Name"    < mermaid   log it, and keep it as a rendered
+#                                        mermaid note under the main note
+#   lesson where                         print the file and noteIds
 #
 # Env:
 #   LESSON_DIR   where markdown files go (default: ~/Notes/Learn)
@@ -24,9 +35,10 @@ mkdir -p "$LESSON_DIR" "$STATE_DIR"
 usage() {
   cat >&2 <<'EOF'
 usage:
-  lesson start "Topic"   < intro    create local file + Trilium note
-  lesson log             < text     append to both
-  lesson where                      print current file and noteId
+  lesson start "Topic"    < intro     open today's session (file + Trilium)
+  lesson log              < text      append to both
+  lesson diagram "Name"   < mermaid   log it and keep it as a mermaid note
+  lesson where                        print current file and noteIds
 EOF
   exit 1
 }
@@ -42,42 +54,78 @@ load_current() {
     echo "lesson: no lesson started (run 'lesson start')" >&2
     exit 1
   }
-  { read -r FILE; read -r NOTE; } <"$CURRENT"
+  FILE="" NOTE="" MAIN="" TITLE=""
+  { read -r FILE; read -r NOTE; read -r MAIN; read -r TITLE; } <"$CURRENT" || true
+  [ -n "$MAIN" ] || {
+    echo "lesson: current lesson predates main notes (run 'lesson start' again)" >&2
+    exit 1
+  }
 }
 
 cmd_start() {
   [ $# -ge 1 ] || usage
-  local title="$1" body file note
+  local title="$1" body file main session note
   body="$(cat)"
   file="$LESSON_DIR/$(slug "$title").md"
+  session="Session $(date +%F)"
 
   if [ ! -e "$file" ]; then
     printf '# %s\n\n' "$title" >"$file"
   fi
+  grep -qxF "## $session" "$file" || printf '## %s\n\n' "$session" >>"$file"
   printf '%s\n\n' "$body" >>"$file"
 
-  note="$(printf '# %s\n\n%s\n' "$title" "$body" | trilium new "$title")"
-  printf '%s\n%s\n' "$file" "$note" >"$CURRENT"
+  main="$(printf '# %s\n\nOne child note per session. Local file: `%s`\n' "$title" "$file" |
+    trilium ensure "$title")"
 
-  printf 'file=%s\nnote=%s\n' "$file" "$note"
+  # A second start on the same day continues that day's session note.
+  note="$(trilium find -p "$main" "$session")"
+  if [ -n "$note" ]; then
+    printf '%s' "$body" | trilium append "$note" >/dev/null
+  else
+    note="$(printf '# %s - %s\n\n%s\n' "$title" "$session" "$body" |
+      trilium new -p "$main" "$session")"
+  fi
+
+  printf '%s\n%s\n%s\n%s\n' "$file" "$note" "$main" "$title" >"$CURRENT"
+  printf 'file=%s\nmain=%s\nnote=%s\n' "$file" "$main" "$note"
+}
+
+log_body() {
+  printf '%s\n\n' "$1" >>"$FILE"
+  printf '%s' "$1" | trilium append "$NOTE" >/dev/null
 }
 
 cmd_log() {
   load_current
-  local body
-  body="$(cat)"
-  printf '%s\n\n' "$body" >>"$FILE"
-  printf '%s' "$body" | trilium append "$NOTE" >/dev/null
+  log_body "$(cat)"
+}
+
+cmd_diagram() {
+  [ $# -ge 1 ] || usage
+  load_current
+  local name="$TITLE - $1" source id
+  source="$(cat)"
+  log_body "$(printf '```mermaid\n%s\n```' "$source")"
+
+  id="$(trilium find -p "$MAIN" "$name")"
+  if [ -n "$id" ]; then
+    printf '%s' "$source" | trilium set "$id" >/dev/null
+  else
+    id="$(printf '%s' "$source" | trilium new -p "$MAIN" -t mermaid "$name")"
+  fi
+  echo "diagram=$id"
 }
 
 cmd_where() {
   load_current
-  printf 'file=%s\nnote=%s\n' "$FILE" "$NOTE"
+  printf 'file=%s\nmain=%s\nnote=%s\n' "$FILE" "$MAIN" "$NOTE"
 }
 
 case "${1:-}" in
   start) shift; cmd_start "$@" ;;
   log) shift; cmd_log ;;
+  diagram) shift; cmd_diagram "$@" ;;
   where) shift; cmd_where ;;
   *) usage ;;
 esac

@@ -5,7 +5,7 @@ description: Write lesson notes to a local markdown file and Trilium at once. Us
 # Notes
 
 Every lesson is written to two places at once: a local markdown file (which
-renders LaTeX and mermaid) and a Trilium note (which syncs to his phone). The
+renders LaTeX and mermaid) and Trilium (which syncs to his phone). The
 `lesson` command writes both in one call, so they never drift. Never write to
 one without the other, and never write lesson content with `cat >` or an editor.
 
@@ -19,10 +19,12 @@ where he got to last time, which sharpens the probe.
 
 ```bash
 trilium search "networking"
-trilium get ApAzw8gwqf4O
+trilium children Kd82mPq0xLa1
+trilium get Tz4nWb7cQe90
 ```
 
-`search` prints one line per hit: noteId, then title.
+`search` and `children` print one line per note: noteId, then title. A
+topic's main note lists its sessions; read the latest ones.
 
 ## Open the lesson — first action of every session
 
@@ -37,10 +39,23 @@ Started: 2026-09-18
 EOF
 ```
 
-It prints the file path and the noteId, and remembers both. Every later
-`lesson log` goes to that lesson until the next `lesson start`.
+In Trilium each topic is a main note with one child note per session:
+
+```text
+Networking                ← main note, found by title, so he can move it
+├── Networking - map      ← diagrams, as rendered mermaid notes
+├── Session 2026-09-18
+└── Session 2026-10-10    ← today's `lesson log` lands here
+```
+
+`lesson start` finds or creates the main note, then opens today's session
+note under it (a second start on the same day continues that note). The local
+file stays one growing file per topic, with a `## Session <date>` heading per
+session. It prints the file path and the noteIds, and remembers them. Every
+later `lesson log` goes to that session until the next `lesson start`.
 
 The title is the topic, in plain words. The filename is derived from it.
+Don't put a session heading in the intro; `lesson start` adds it.
 
 ## Log as you go
 
@@ -91,13 +106,13 @@ EOF
 
 ## Diagrams
 
-The local file renders fenced mermaid, the Trilium note does not, since it
-holds markdown source. So put the diagram in the lesson with `lesson log` as a
-fenced block, and additionally create it as its own rendering note in Trilium:
+The local file renders fenced mermaid, a markdown note in Trilium does not.
+So `lesson diagram` does both: it logs the diagram as a fenced block, and
+keeps it as a rendered mermaid note under the topic's main note, titled
+`<Topic> - <name>`. Running it again with the same name updates that note.
 
 ```bash
-TRILIUM_NOTE_TYPE=mermaid TRILIUM_NOTE_MIME=text/mermaid \
-  trilium new "Networking - map" <<'EOF'
+lesson diagram "map" <<'EOF'
 graph TD
   A[all communication is packets] --> B[addressing]
 EOF
@@ -105,12 +120,14 @@ EOF
 
 ## Commands
 
-    lesson start "Topic"  < intro    create local file + Trilium note
-    lesson log            < text     append to both
-    lesson where                     print current file and noteId
-    trilium search "query"           search earlier lessons
-    trilium get <noteId>             read an earlier lesson
-    trilium new "Title"   < body     create a standalone note (diagrams)
+    lesson start "Topic"   < intro    open today's session (file + Trilium)
+    lesson log             < text     append to both
+    lesson diagram "Name"  < mermaid  log it + keep it as a mermaid note
+    lesson where                      print current file and noteIds
+    trilium search "query"            search earlier lessons
+    trilium children <noteId>         list a topic's sessions and diagrams
+    trilium get <noteId>              read an earlier session
+    trilium new "Title"    < body     create a standalone note
 
 Content always comes in on stdin.
 
@@ -118,7 +135,8 @@ Content always comes in on stdin.
 
 - Use heredocs with quoted `'EOF'` so backticks, `$` and LaTeX survive.
 - One lesson per topic, not one per session. Returning to a topic means
-  `lesson start` with the same title, which appends to the same file.
+  `lesson start` with the same title: same file, same main note, a new
+  session note.
 - Write for him, not for yourself. No session logs, no narration of what you
   are about to do.
 - Do not announce saving. Write and keep teaching.
