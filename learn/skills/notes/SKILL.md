@@ -65,8 +65,29 @@ matters as much as the ceiling.
 
 **The plan**, once he approves it.
 
-**Each node**, as it finishes its loop: why it was needed, what it
-establishes, what it hangs off.
+**Each node**, as it finishes its loop, in two parts:
+
+1. **The explanation, written in full.** Write it fresh for reading later,
+   not copied from chat: chat leans on the back-and-forth, and the note has to
+   stand alone. Cover the motivating problem, every reasoning step in order,
+   the examples and analogies that made it click, and the re-explanation if
+   the first pass missed. It should read like a textbook section he could
+   re-learn the node from cold, months later. Do not summarize or compress.
+2. **A bullet recap** under it: why it was needed, what it establishes, what
+   it hangs off, and the quiz result (misses in full).
+
+```bash
+lesson log <<'EOF'
+## Node 2 — FTP
+
+Prose explanation here: the problem, each step, examples...
+
+- Motivated by: ...
+- Established: ...
+- Hangs off: ...
+- Quiz: ...
+EOF
+```
 
 ## Diagrams
 

@@ -96,7 +96,8 @@ Then log continuously with `lesson log`:
   in full, with what the wrong answer reveals about his model. Correct answers
   in one line each, since the floor matters as much as the ceiling.
 - **The plan**, once he approves it.
-- **Each node**, as it completes its loop.
+- **Each node**, as it completes its loop: the full explanation written fresh
+  as prose, followed by a bullet recap (see step 6 of Phase 3).
 
 Do not narrate the saving. Write and keep teaching.
 
@@ -153,7 +154,7 @@ For **every node** (each unconditional truth *and* each non-trivial reasoning st
 3. **Connect.** Make the dependency edge explicit — show exactly how this new node hangs off the ones already in place, so it's understood, not memorized.
 4. **Quiz-check.** Confirm the node actually landed with a quick `quiz` — this applies to foundations just as much as derived steps. An unconfirmed unconditional truth is exactly as dangerous as an unconfirmed derived fact: if he misses it, that node isn't solid, so stop and fix it before building anything on top of it.
 5. **Ask what didn't land.** After every quiz-check, whether he got it right or wrong, ask him with `ask_user_question` whether anything about this node is still unclear. A correct answer can hide a guess or a half-understood step, and only he knows which. Offer concrete options: everything is clear, or name the specific part (the motivation, the idea itself, the connection to earlier nodes, the quiz answer), plus free text. If something is unclear, re-explain that part from a different angle, then quiz-check it again before moving on. Don't skip this because the answer was right.
-6. **Append it.** Once the node is confirmed landed, append it to the lesson note: the motivation, the established idea, the edge to what it hangs off, and any quiz miss worth remembering.
+6. **Append it.** Once the node is confirmed landed, append it to the lesson note in two parts. First, **the full explanation**, written fresh for reading later rather than copied from chat: the motivating problem, every reasoning step of the discovery path in order, the examples and analogies, and the re-explanation if the first pass missed. It must stand alone as a textbook section he could re-learn the node from cold. Never summarize or compress it. Second, **a bullet recap** under it: the motivation, the established idea, the edge to what it hangs off, and any quiz miss worth remembering.
 
 Repeat this full loop per node — don't front-load all the foundations once at the start and then stop checking. Any time a new unconditional truth is needed mid-session, it goes through motivate → establish → connect → quiz-check → ask what didn't land → append just like a derived step would.
 
