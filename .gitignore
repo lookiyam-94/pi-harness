@@ -9,10 +9,6 @@
 !/agents/
 !/extensions/
 !/learn/
-!/skills/
-# Omarchy-provided skills are symlinks into /usr/share/omarchy
-/skills/omarchy
-/skills/diagnose-crash
 
 node_modules/
 .env*

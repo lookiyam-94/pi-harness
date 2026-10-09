@@ -55,7 +55,6 @@ Adds a diagram to a lesson only when the idea is clearer as a picture: a depende
 | `coach-guard` | Enforces `code-coach`: in any project with a `.coach/` folder, the agent can only write inside `.coach/` and run commands that read or check. `/coach on` / `/coach off` toggles it |
 | `md-log` | Mirrors a session to a markdown file for easier reading |
 | `visual-tools` | Write, edit and render tools for the diagram subagents |
-| `omarchy-system-theme` | Switches pi between light and dark to match the current Omarchy theme |
 
 ## Subagents
 
@@ -109,7 +108,7 @@ Then:
 
 ## Not tracked
 
-`.gitignore` is an allowlist: only the files above are shared. `auth.json`, `mcp-auth.json`, `sessions/`, `trust.json`, `models-store.json`, installed packages (`git/`, `npm/`), and the system-provided Omarchy skills stay local.
+`.gitignore` is an allowlist: only the files above are shared. `auth.json`, `mcp-auth.json`, `sessions/`, `trust.json`, `models-store.json`, and installed packages (`git/`, `npm/`) stay local.
 
 ## Credits
 
