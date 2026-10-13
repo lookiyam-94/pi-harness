@@ -1,6 +1,6 @@
 # pi harness
 
-My personal configuration for the [pi](https://github.com/earendil-works/pi) coding agent. Most of it is a learning system: skills that turn pi into a tutor that finds what you already know, plans a lesson around it, and checks that each idea actually landed. It also includes a coding coach that never writes your code for you.
+My personal configuration for the [pi](https://github.com/earendil-works/pi) coding agent. Most of it is a learning system: skills that turn pi into a tutor that finds what you already know, plans a lesson around it, and checks that each idea actually landed. It also includes a coding coach that never writes your code for you. Lesson notes and drill progress are saved in an [Obsidian](https://obsidian.md) vault.
 
 ## Skills
 
@@ -32,15 +32,25 @@ Project-based coding lessons for HTML, CSS, JavaScript, TypeScript, APIs, React,
    - **Check:** you explain your own code, take a quiz, and say what's still unclear. Anything unclear is re-explained more simply.
 5. Every few milestones there's a stress milestone: the API is slow, returns an error, or the screen is 320px wide, and you handle it.
 
-Project state (the plan, milestone briefs and progress) lives in a `.coach/` folder inside the project, so you can stop and resume. What you learned goes into your lesson notes.
+Project state (the plan, milestone briefs and progress) lives in a `.coach/` folder inside the project, so you can stop and resume. What you learned goes into your lesson notes in Obsidian.
 
 ### `drill` — keep what you learned
 
-Re-tests material you were already taught, starting with the questions you got wrong in past lessons. It keeps one scoreboard note per topic in Trilium, rewritten each session, so you can see what has held and what hasn't.
+Re-tests material you were already taught, starting with the questions you got wrong in past lessons. It keeps one scoreboard note per topic in the vault (`Learn/Drill/Drill - <Topic>`), rewritten each session, so you can see what has held and what hasn't.
 
-### `notes` — lesson notes in two places
+### `notes` — lesson notes in Obsidian
 
-Writes every lesson to a local markdown file (which shows code, LaTeX and mermaid diagrams properly) and Trilium (which syncs to your phone) in one command, so the two never disagree. In Trilium each topic is a main note with one child note per session, plus rendered mermaid notes for its diagrams. It records each probe question, quiz miss, plan and explanation as the lesson happens, not as a summary at the end.
+Writes every lesson into your Obsidian vault, which renders code, LaTeX and mermaid diagrams. Each topic is a folder under `Learn/`:
+
+```text
+Learn/Networking/
+├── Networking.md              main note: embeds the diagrams, links every session
+├── Networking - map.md        a diagram, updated in place as the lesson grows
+├── Networking 2026-09-18.md   one note per session
+└── Networking 2026-10-10.md
+```
+
+It records each probe question, quiz miss, plan and explanation as the lesson happens, not as a summary at the end. Before a lesson it searches the whole vault, so your other notes can show what you already know.
 
 ### `visualize` — diagrams that are correct
 
@@ -82,7 +92,7 @@ Used through [pi-interactive-subagents](https://github.com/amosblomqvist/pi-inte
 | `learn/` | The learning system, loaded as a local pi package: `skills/`, `extensions/`, `agents/` |
 | `agents/` | Links to `learn/agents/`, where pi-interactive-subagents looks for global agents |
 | `extensions/` | Other global extensions |
-| `bin/` | `lesson` and `trilium` command-line tools used by the `notes` and `drill` skills |
+| `bin/` | `lesson` and `vault` command-line tools used by the `notes` and `drill` skills |
 
 ## Install
 
@@ -93,17 +103,21 @@ git clone https://github.com/lookiyam-94/pi-harness ~/.pi/agent
 Then:
 
 - Log in to a model provider with pi. Keys are stored in `auth.json`, which is never committed.
-- The `notes` and `drill` skills use the `lesson` and `trilium` tools in `bin/` (they need `curl` and `jq`, and a [Trilium](https://github.com/TriliumNext/Trilium) server). Put them on your PATH and configure Trilium:
+- The `notes` and `drill` skills use the `lesson` and `vault` tools in `bin/` (plain bash, no dependencies). Put them on your PATH:
 
   ```bash
-  ln -s ~/.pi/agent/bin/lesson ~/.pi/agent/bin/trilium ~/.local/bin/
-  mkdir -p ~/.config/trilium
-  cp ~/.pi/agent/bin/trilium.env.example ~/.config/trilium/env
-  chmod 600 ~/.config/trilium/env   # then add your URL and ETAPI token
-  trilium ping
+  ln -s ~/.pi/agent/bin/lesson ~/.pi/agent/bin/vault ~/.local/bin/
+  vault path
   ```
 
-  Local lesson files go to `~/Notes/Learn` unless you set `LESSON_DIR`.
+  They write to the Obsidian vault at `~/Notes/obsidian-vault`, with lessons in its `Learn/` folder. To use another vault or folder, set `OBSIDIAN_VAULT` and `LESSON_DIR` in your environment or in `~/.config/pi-vault/env`:
+
+  ```bash
+  export OBSIDIAN_VAULT=~/Documents/MyVault
+  export LESSON_DIR=Lessons
+  ```
+
+  Obsidian doesn't need to be running: notes are plain markdown files, and the app picks them up when it opens. To read them on your phone, sync the vault (Obsidian Sync, Syncthing, Nextcloud...).
 - The `browser` MCP expects Chromium at `/usr/bin/chromium`. Change the path in `mcp.json` if yours is elsewhere.
 
 ## Not tracked
