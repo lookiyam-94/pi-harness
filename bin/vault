@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+# vault - minimal Obsidian vault client for use as a pi skill
+#
+# Notes are plain markdown files. A note is named by its path relative to the
+# vault, with or without the .md extension (e.g. "Learn/Networking/Networking").
+#
+# Env:
+#   OBSIDIAN_VAULT   vault root (default: ~/Notes/obsidian-vault)
+#
+# Read from ~/.config/pi-vault/env when present.
+
+set -euo pipefail
+
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/pi-vault/env"
+# shellcheck source=/dev/null
+if [ -f "$CONF" ]; then . "$CONF"; fi
+
+VAULT="${OBSIDIAN_VAULT:-$HOME/Notes/obsidian-vault}"
+VAULT="${VAULT%/}"
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  vault search "query"        notes whose title or text matches (case-insensitive)
+  vault find "Title"          path of the note with this exact title, if any
+  vault list [folder]         notes in a folder (default: vault root), recursive
+  vault get <note>            print a note
+  vault new <note>   < body   create a note (fails if it exists), prints its path
+  vault set <note>   < body   replace a note's content (creates it if missing)
+  vault append <note> < more  append to a note (creates it if missing)
+  vault path                  print the vault root
+
+<note> is a path relative to the vault; ".md" is optional.
+EOF
+  exit 1
+}
+
+[ -d "$VAULT" ] || { echo "vault: $VAULT is not a directory (set OBSIDIAN_VAULT)" >&2; exit 1; }
+
+# Relative note path -> absolute file path, refusing to leave the vault.
+resolve() {
+  local rel="${1#/}"
+  case "$rel" in *.md) ;; *) rel="$rel.md" ;; esac
+  case "/$rel/" in */../*) echo "vault: path escapes the vault: $1" >&2; exit 1 ;; esac
+  printf '%s/%s' "$VAULT" "$rel"
+}
+
+rel() { printf '%s\n' "${1#"$VAULT"/}"; }
+
+notes() {
+  find "${1:-$VAULT}" -path "$VAULT/.obsidian" -prune -o -path "$VAULT/.trash" -prune \
+    -o -type f -name '*.md' -print | sort
+}
+
+cmd_search() {
+  [ $# -ge 1 ] || usage
+  local q="$1"
+  {
+    notes | while IFS= read -r f; do
+      case "$(basename "$f" .md | tr '[:upper:]' '[:lower:]')" in
+        *"$(printf '%s' "$q" | tr '[:upper:]' '[:lower:]')"*) rel "$f" ;;
+      esac
+    done
+    notes | tr '\n' '\0' | xargs -0 -r grep -liF -- "$q" | while IFS= read -r f; do rel "$f"; done
+  } | awk '!seen[$0]++' | head -50
+}
+
+cmd_find() {
+  [ $# -ge 1 ] || usage
+  notes | while IFS= read -r f; do
+    [ "$(basename "$f" .md)" = "$1" ] && { rel "$f"; break; }
+  done
+  return 0
+}
+
+cmd_list() {
+  local dir="$VAULT"
+  if [ $# -ge 1 ]; then
+    dir="$VAULT/${1#/}"
+    dir="${dir%/}"
+    case "/$1/" in */../*) echo "vault: path escapes the vault: $1" >&2; exit 1 ;; esac
+  fi
+  [ -d "$dir" ] || { echo "vault: no folder $1" >&2; exit 1; }
+  notes "$dir" | while IFS= read -r f; do rel "$f"; done
+}
+
+cmd_get() {
+  [ $# -ge 1 ] || usage
+  local f
+  f="$(resolve "$1")"
+  cat "$f"
+}
+
+cmd_new() {
+  [ $# -ge 1 ] || usage
+  local f
+  f="$(resolve "$1")"
+  [ ! -e "$f" ] || { echo "vault: $1 already exists" >&2; exit 1; }
+  mkdir -p "$(dirname "$f")"
+  cat >"$f"
+  rel "$f"
+}
+
+cmd_set() {
+  [ $# -ge 1 ] || usage
+  local f tmp
+  f="$(resolve "$1")"
+  mkdir -p "$(dirname "$f")"
+  tmp="$(mktemp "$f.XXXXXX")"
+  cat >"$tmp"
+  mv "$tmp" "$f"
+  rel "$f"
+}
+
+cmd_append() {
+  [ $# -ge 1 ] || usage
+  local f
+  f="$(resolve "$1")"
+  mkdir -p "$(dirname "$f")"
+  { [ -s "$f" ] && printf '\n'; cat; printf '\n'; } >>"$f"
+  rel "$f"
+}
+
+case "${1:-}" in
+  search) shift; cmd_search "$@" ;;
+  find) shift; cmd_find "$@" ;;
+  list) shift; cmd_list "$@" ;;
+  get) shift; cmd_get "$@" ;;
+  new) shift; cmd_new "$@" ;;
+  set) shift; cmd_set "$@" ;;
+  append) shift; cmd_append "$@" ;;
+  path) echo "$VAULT" ;;
+  *) usage ;;
+esac

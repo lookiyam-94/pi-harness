@@ -1,52 +1,53 @@
 #!/usr/bin/env bash
-# lesson - write lesson material to a local markdown file and Trilium at the
-# same time, so the two never drift.
+# lesson - write lesson material into the Obsidian vault as it happens.
 #
-# Trilium holds one main note per topic with one child note per session:
+# Each topic is a folder under LESSON_DIR, with a main note that links to one
+# note per session. Obsidian renders LaTeX and mermaid, so one copy is enough.
 #
-#   Topic                 main note (found by title anywhere under
-#   ├── Topic - map       TRILIUM_PARENT, so it can be moved freely)
-#   ├── Session 2026-10-03
-#   └── Session 2026-10-10
-#
-# The local file is one growing markdown file per topic.
+#   Learn/Networking/
+#   ├── Networking.md               main note, links every session
+#   ├── Networking - map.md         diagrams kept by `lesson diagram`
+#   ├── Networking 2026-10-03.md
+#   └── Networking 2026-10-10.md
 #
 #   lesson start "Topic"     < intro     open today's session, remember it
-#   lesson log               < text      append to the file and session note
-#   lesson diagram "Name"    < mermaid   log it, and keep it as a rendered
-#                                        mermaid note under the main note
-#   lesson where                         print the file and noteIds
+#   lesson log               < text      append to today's session note
+#   lesson diagram "Name"    < mermaid   log it, and keep it as its own note
+#   lesson where                         print the current notes
 #
 # Env:
-#   LESSON_DIR   where markdown files go (default: ~/Notes/Learn)
-#   plus everything the `trilium` script reads
+#   OBSIDIAN_VAULT   vault root (default: ~/Notes/obsidian-vault)
+#   LESSON_DIR       folder inside the vault for lessons (default: Learn)
 
 set -euo pipefail
 
-CONF="${XDG_CONFIG_HOME:-$HOME/.config}/trilium/env"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/pi-vault/env"
 # shellcheck source=/dev/null
 if [ -f "$CONF" ]; then . "$CONF"; fi
 
-LESSON_DIR="${LESSON_DIR:-$HOME/Notes/Learn}"
+VAULT="${OBSIDIAN_VAULT:-$HOME/Notes/obsidian-vault}"
+VAULT="${VAULT%/}"
+LESSON_DIR="${LESSON_DIR:-Learn}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/lesson"
 CURRENT="$STATE_DIR/current"
-mkdir -p "$LESSON_DIR" "$STATE_DIR"
+mkdir -p "$STATE_DIR"
+
+[ -d "$VAULT" ] || { echo "lesson: $VAULT is not a directory (set OBSIDIAN_VAULT)" >&2; exit 1; }
 
 usage() {
   cat >&2 <<'EOF'
 usage:
-  lesson start "Topic"    < intro     open today's session (file + Trilium)
-  lesson log              < text      append to both
-  lesson diagram "Name"   < mermaid   log it and keep it as a mermaid note
-  lesson where                        print current file and noteIds
+  lesson start "Topic"    < intro     open today's session note
+  lesson log              < text      append to it
+  lesson diagram "Name"   < mermaid   log it and keep it as its own note
+  lesson where                        print current notes
 EOF
   exit 1
 }
 
-slug() {
-  printf '%s' "$1" |
-    tr '[:upper:]' '[:lower:]' |
-    sed -e 's/[^a-z0-9]\+/-/g' -e 's/^-//' -e 's/-$//'
+# Obsidian note titles can't contain these characters.
+safe_title() {
+  printf '%s' "$1" | sed -e 's/[][\\/:*?"<>|#^]\+/-/g' -e 's/^[ .-]*//' -e 's/[ .-]*$//'
 }
 
 load_current() {
@@ -54,72 +55,71 @@ load_current() {
     echo "lesson: no lesson started (run 'lesson start')" >&2
     exit 1
   }
-  FILE="" NOTE="" MAIN="" TITLE=""
-  { read -r FILE; read -r NOTE; read -r MAIN; read -r TITLE; } <"$CURRENT" || true
-  [ -n "$MAIN" ] || {
-    echo "lesson: current lesson predates main notes (run 'lesson start' again)" >&2
-    exit 1
-  }
+  FILE="" MAIN="" TITLE=""
+  { read -r FILE; read -r MAIN; read -r TITLE; } <"$CURRENT" || true
+  case "$FILE" in "$VAULT"/*) ;; *)
+    echo "lesson: current lesson is from the old setup (run 'lesson start' again)" >&2
+    exit 1 ;;
+  esac
 }
 
 cmd_start() {
   [ $# -ge 1 ] || usage
-  local title="$1" body file main session note
+  local title name dir main session file body
+  title="$1"
+  name="$(safe_title "$title")"
   body="$(cat)"
-  file="$LESSON_DIR/$(slug "$title").md"
-  session="Session $(date +%F)"
+  dir="$VAULT/$LESSON_DIR/$name"
+  main="$dir/$name.md"
+  session="$name $(date +%F)"
+  file="$dir/$session.md"
+  mkdir -p "$dir"
 
-  if [ ! -e "$file" ]; then
-    printf '# %s\n\n' "$title" >"$file"
+  if [ ! -e "$main" ]; then
+    printf -- '---\ntags: [lesson]\n---\n# %s\n\n## Diagrams\n\n## Sessions\n\n' "$title" >"$main"
   fi
-  grep -qxF "## $session" "$file" || printf '## %s\n\n' "$session" >>"$file"
-  printf '%s\n\n' "$body" >>"$file"
-
-  main="$(printf '# %s\n\nOne child note per session. Local file: `%s`\n' "$title" "$file" |
-    trilium ensure "$title")"
+  grep -qF "[[$session]]" "$main" || printf -- '- [[%s]]\n' "$session" >>"$main"
 
   # A second start on the same day continues that day's session note.
-  note="$(trilium find -p "$main" "$session")"
-  if [ -n "$note" ]; then
-    printf '%s' "$body" | trilium append "$note" >/dev/null
-  else
-    note="$(printf '# %s - %s\n\n%s\n' "$title" "$session" "$body" |
-      trilium new -p "$main" "$session")"
+  if [ ! -e "$file" ]; then
+    printf -- '---\ntags: [lesson-session]\ntopic: "[[%s]]"\ndate: %s\n---\n# %s - %s\n\n' \
+      "$name" "$(date +%F)" "$title" "$(date +%F)" >"$file"
   fi
+  printf '%s\n\n' "$body" >>"$file"
 
-  printf '%s\n%s\n%s\n%s\n' "$file" "$note" "$main" "$title" >"$CURRENT"
-  printf 'file=%s\nmain=%s\nnote=%s\n' "$file" "$main" "$note"
-}
-
-log_body() {
-  printf '%s\n\n' "$1" >>"$FILE"
-  printf '%s' "$1" | trilium append "$NOTE" >/dev/null
+  printf '%s\n%s\n%s\n' "$file" "$main" "$title" >"$CURRENT"
+  printf 'main=%s\nnote=%s\n' "${main#"$VAULT"/}" "${file#"$VAULT"/}"
 }
 
 cmd_log() {
   load_current
-  log_body "$(cat)"
+  printf '%s\n\n' "$(cat)" >>"$FILE"
 }
 
 cmd_diagram() {
   [ $# -ge 1 ] || usage
   load_current
-  local name="$TITLE - $1" source id
+  local name source dir note
+  name="$(safe_title "$(basename "$MAIN" .md) - $1")"
   source="$(cat)"
-  log_body "$(printf '```mermaid\n%s\n```' "$source")"
+  printf '```mermaid\n%s\n```\n\n' "$source" >>"$FILE"
 
-  id="$(trilium find -p "$MAIN" "$name")"
-  if [ -n "$id" ]; then
-    printf '%s' "$source" | trilium set "$id" >/dev/null
-  else
-    id="$(printf '%s' "$source" | trilium new -p "$MAIN" -t mermaid "$name")"
+  dir="$(dirname "$MAIN")"
+  note="$dir/$name.md"
+  printf '# %s\n\n```mermaid\n%s\n```\n' "$name" "$source" >"$note"
+  if ! grep -qF "[[$name]]" "$MAIN"; then
+    if grep -qx '## Diagrams' "$MAIN"; then
+      sed -i "/^## Diagrams\$/a\\\n![[$name]]" "$MAIN"
+    else
+      printf -- '\n![[%s]]\n' "$name" >>"$MAIN"
+    fi
   fi
-  echo "diagram=$id"
+  echo "diagram=${note#"$VAULT"/}"
 }
 
 cmd_where() {
   load_current
-  printf 'file=%s\nmain=%s\nnote=%s\n' "$FILE" "$MAIN" "$NOTE"
+  printf 'main=%s\nnote=%s\n' "${MAIN#"$VAULT"/}" "${FILE#"$VAULT"/}"
 }
 
 case "${1:-}" in

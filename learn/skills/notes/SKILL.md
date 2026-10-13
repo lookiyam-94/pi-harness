@@ -1,16 +1,16 @@
 ---
 name: notes
-description: Write lesson notes to a local markdown file and Trilium at once. Use at the very start of any lesson, and after every question, answer and explanation. Also use to find what was covered in earlier lessons.
+description: Write lesson notes into his Obsidian vault as the lesson happens. Use at the very start of any lesson, and after every question, answer and explanation. Also use to find what was covered in earlier lessons.
 ---
 # Notes
 
-Every lesson is written to two places at once: a local markdown file (which
-renders LaTeX and mermaid) and Trilium (which syncs to his phone). The
-`lesson` command writes both in one call, so they never drift. Never write to
-one without the other, and never write lesson content with `cat >` or an editor.
+Every lesson is written into his Obsidian vault, which renders markdown,
+LaTeX and mermaid. The `lesson` command does the writing and `vault` reads
+earlier notes. Never write lesson content with `cat >` or an editor: `lesson`
+keeps the folder layout and links consistent.
 
 Both commands are on PATH and already configured. Never ask the user for a
-file path, URL, token or note ID.
+vault path or file name.
 
 ## Before anything else
 
@@ -18,13 +18,15 @@ Search for earlier work on the topic. If a note exists, read it: it tells you
 where he got to last time, which sharpens the probe.
 
 ```bash
-trilium search "networking"
-trilium children Kd82mPq0xLa1
-trilium get Tz4nWb7cQe90
+vault search "networking"
+vault list "Learn/Networking"
+vault get "Learn/Networking/Networking 2026-09-18"
 ```
 
-`search` and `children` print one line per note: noteId, then title. A
-topic's main note lists its sessions; read the latest ones.
+`search`, `list` and `find` print one note path per line, relative to the
+vault. Pass those paths straight to `vault get`. A topic's main note links
+its sessions; read the latest ones. The vault holds his other notes too
+(homelab, Docker, Linux...); they can tell you what he already knows.
 
 ## Open the lesson — first action of every session
 
@@ -33,29 +35,30 @@ valuable record in the whole session and it must not be lost.
 
 ```bash
 lesson start "Networking" <<'EOF'
-Started: 2026-09-18
-
 ## Probe
 EOF
 ```
 
-In Trilium each topic is a main note with one child note per session:
+Each topic is a folder under `Learn/` in the vault:
 
 ```text
-Networking                ← main note, found by title, so he can move it
-├── Networking - map      ← diagrams, as rendered mermaid notes
-├── Session 2026-09-18
-└── Session 2026-10-10    ← today's `lesson log` lands here
+Learn/Networking/
+├── Networking.md              ← main note: embeds diagrams, links sessions
+├── Networking - map.md        ← kept up to date by `lesson diagram`
+├── Networking 2026-09-18.md
+└── Networking 2026-10-10.md   ← today's `lesson log` lands here
 ```
 
-`lesson start` finds or creates the main note, then opens today's session
-note under it (a second start on the same day continues that note). The local
-file stays one growing file per topic, with a `## Session <date>` heading per
-session. It prints the file path and the noteIds, and remembers them. Every
-later `lesson log` goes to that session until the next `lesson start`.
+`lesson start` creates the folder and main note if needed, links today's
+session from the main note, and opens today's session note (a second start
+on the same day continues that note). It prints the note paths and remembers
+them. Every later `lesson log` goes to that session until the next
+`lesson start`.
 
-The title is the topic, in plain words. The filename is derived from it.
-Don't put a session heading in the intro; `lesson start` adds it.
+The title is the topic, in plain words. Characters Obsidian forbids in
+file names (`/ : ? # [ ]` ...) are replaced in the file name; the heading
+keeps the title as written. Don't put a session heading or date in the
+intro; `lesson start` adds them.
 
 ## Log as you go
 
@@ -104,12 +107,17 @@ Prose explanation here: the problem, each step, examples...
 EOF
 ```
 
+Obsidian renders LaTeX (`$...$`, `$$...$$`) and fenced mermaid, so write
+notation and diagrams normally. Use `[[wikilinks]]` to point at other notes
+in the vault when a lesson builds on one.
+
 ## Diagrams
 
-The local file renders fenced mermaid, a markdown note in Trilium does not.
-So `lesson diagram` does both: it logs the diagram as a fenced block, and
-keeps it as a rendered mermaid note under the topic's main note, titled
-`<Topic> - <name>`. Running it again with the same name updates that note.
+`lesson diagram` logs the diagram into today's session as a fenced mermaid
+block, and also keeps it as its own note, `<Topic> - <name>`, embedded in the
+topic's main note. Running it again with the same name replaces that note, so
+the main note always shows the latest version (a dependency map that grows
+over sessions, for example).
 
 ```bash
 lesson diagram "map" <<'EOF'
@@ -120,14 +128,15 @@ EOF
 
 ## Commands
 
-    lesson start "Topic"   < intro    open today's session (file + Trilium)
-    lesson log             < text     append to both
-    lesson diagram "Name"  < mermaid  log it + keep it as a mermaid note
-    lesson where                      print current file and noteIds
-    trilium search "query"            search earlier lessons
-    trilium children <noteId>         list a topic's sessions and diagrams
-    trilium get <noteId>              read an earlier session
-    trilium new "Title"    < body     create a standalone note
+    lesson start "Topic"   < intro    open today's session note
+    lesson log             < text     append to it
+    lesson diagram "Name"  < mermaid  log it + keep it as its own note
+    lesson where                      print current note paths
+    vault search "query"              find notes by title or text
+    vault find "Title"                path of the note with this exact title
+    vault list "Learn/Topic"          notes in a folder
+    vault get "<path>"                read a note
+    vault new "<path>"     < body     create a standalone note
 
 Content always comes in on stdin.
 
@@ -135,10 +144,11 @@ Content always comes in on stdin.
 
 - Use heredocs with quoted `'EOF'` so backticks, `$` and LaTeX survive.
 - One lesson per topic, not one per session. Returning to a topic means
-  `lesson start` with the same title: same file, same main note, a new
+  `lesson start` with the same title: same folder, same main note, a new
   session note.
 - Write for him, not for yourself. No session logs, no narration of what you
   are about to do.
 - Do not announce saving. Write and keep teaching.
+- Never edit or delete his other notes in the vault. Read them, link them.
 - If `lesson` exits non-zero, tell him once, plainly, and continue teaching.
   Do not retry in a loop.

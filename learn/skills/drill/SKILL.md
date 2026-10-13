@@ -8,11 +8,11 @@ Teaching builds understanding. Drilling keeps it. This is the second job, and
 it is not the same as the first: here you are not explaining, you are testing
 and recording what held.
 
-Drill state lives in **Trilium only**, in one note per topic, titled
-`Drill: <Topic>`. It is a scoreboard, not a transcript: one line per item, its
-current status, rewritten each session. Never write a session log. Never write
-drill state to a local file, because state that exists in two places
-immediately disagrees with itself.
+Drill state lives in his Obsidian vault, in one note per topic at
+`Learn/Drill/Drill - <Topic>`. It is a scoreboard, not a transcript: one line
+per item, its current status, rewritten each session. Never write a session
+log. Never keep drill state anywhere else, because state that exists in two
+places immediately disagrees with itself.
 
 ## Where items come from
 
@@ -23,8 +23,8 @@ Two sources, in this order:
    highest-value thing to re-test. This is the main source.
 
    ```bash
-   trilium search "networking"
-   trilium get ApAzw8gwqf4O
+   vault search "networking"
+   vault get "Learn/Networking/Networking 2026-09-18"
    ```
 
 2. **Material he points you at.** An exam blueprint, a note, a document. Fine
@@ -39,14 +39,14 @@ is no explanation step where an error would surface.
 Find or create it:
 
 ```bash
-trilium search "Drill: Networking"
+vault find "Drill - Networking"
 ```
 
 If it does not exist:
 
 ```bash
-trilium new "Drill: Networking" <<'EOF'
-# Drill: Networking
+vault new "Learn/Drill/Drill - Networking" <<'EOF'
+# Drill - Networking
 
 Status: new | shaky | ok | retired
 
@@ -70,7 +70,7 @@ Status means:
 
 ## A session
 
-1. Read the state note with `trilium get`.
+1. Read the state note with `vault get`.
 2. Pull in any new misses from lesson notes since the last drill, as `new`.
 3. Pick **10 to 15 items**: every `shaky` one first, then `ok` items not seen
    in a week or more, then `new` ones to fill. Never drill `retired` items
@@ -78,14 +78,15 @@ Status means:
 4. Ask them one at a time with `quiz`, following the option-construction rules
    in the teach skill. Those rules apply here in full: bare parallel claims,
    distractors built by mutating the correct one, no asymmetric bolding.
-5. Track results as you go, in your head, not in Trilium.
-6. **At the end**, rewrite the state note once with `trilium set`, with every
+5. Track results as you go, in your head, not in the vault.
+6. **At the end**, rewrite the state note once with `vault set`, with every
    status and date updated. One write per session, not one per question.
 
 ```bash
-trilium get ApAzw8gwqf4O > /tmp/drill.md
-# ... edit ...
-trilium set ApAzw8gwqf4O < /tmp/drill.md
+vault set "Learn/Drill/Drill - Networking" <<'EOF'
+# Drill - Networking
+...every item, with updated status and date...
+EOF
 ```
 
 Then tell him the score in one or two lines: how many right, and which items
@@ -117,9 +118,9 @@ should be derivable, say so and propose a lesson instead.
 
 ## Rules
 
-- Trilium only. No local files, no `lesson` command.
+- One state note in the vault per topic. No `lesson` command.
 - One state note per topic, rewritten, never appended to.
 - One write per session, at the end.
 - No session transcripts. If he wants to know how he did, he asks.
-- If `trilium` fails, tell him once and carry on drilling from memory for the
+- If `vault` fails, tell him once and carry on drilling from memory for the
   rest of the session, then say plainly that the results were not saved.

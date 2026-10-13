@@ -86,7 +86,7 @@ If, reading the finished set cold, you can still tell which is right without kno
 
 **First action of every session, before the probe:** search for earlier work
 on the topic, then open the lesson with `lesson start` (see the `notes` skill).
-This creates the local markdown file and today's Trilium session note (under the topic's main note) together. Do not
+This creates today's session note in his Obsidian vault, under the topic's main note. Do not
 defer it until the plan is approved. The probe is the most valuable record in
 the session and must not be lost.
 
@@ -162,11 +162,8 @@ If you catch yourself asserting a fact he'd have to take on faith — foundation
 
 ## Formatting — chat vs notes
 
-These are two different surfaces and they render differently. Write for each.
+Both surfaces render LaTeX and mermaid, so write them the same way.
 
 **In chat**, write math in LaTeX. Inline: `$f(x)$`. Centered display: `$$` fenced on its own lines. If LaTeX can be used, it should be — write $f(x) = x^2$, not `f(x) = x^2`. Mermaid graphs go in a fenced `mermaid` block.
 
-**In Trilium notes**, lesson notes are stored as markdown *source*, so neither LaTeX nor fenced mermaid renders — he sees the raw text. Two consequences:
-
-- Keep heavy notation out of anything you append. Prefer prose and simple inline expressions; when notation is unavoidable, still write it as LaTeX rather than a plain-text approximation, since it stays readable and will render if he later converts the note.
-- Diagrams go through `lesson diagram`, which also keeps them as rendered mermaid notes under the topic's main note, as described in the `notes` skill.
+**In lesson notes**, the same applies: Obsidian renders LaTeX and fenced mermaid, so write notation the same way you do in chat. Diagrams that should stay up to date across sessions (like the dependency map) go through `lesson diagram`, as described in the `notes` skill.

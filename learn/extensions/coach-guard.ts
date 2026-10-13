@@ -5,7 +5,7 @@
  * `.coach/` folder (the code-coach skill creates it first thing). While active:
  *   - write / edit are allowed only inside `.coach/`
  *   - bash runs only allowlisted read and check commands (cat, git diff,
- *     tsc --noEmit, eslint, npm run lint/build/test, lesson, trilium, ...)
+ *     tsc --noEmit, eslint, npm run lint/build/test, lesson, vault, ...)
  *   - output redirection is allowed only into `.coach/` or /dev/null
  *
  * This catches the agent "helpfully" fixing code. It is a guard rail, not a
@@ -38,7 +38,7 @@ const ALLOWED: RegExp[] = [
 	/^git\s+(status|log|diff|show|blame|ls-files|rev-parse|shortlog)\b/,
 	/^git\s+branch\s*$/,
 	/^git\s+branch\s+(-a|-r|-v|-vv|--list|--show-current)\b/,
-	/^(lesson|trilium)\b/,
+	/^(lesson|vault)\b/,
 	/^(npx\s+)?tsc\b.*--noEmit\b/,
 	/^(npx\s+)?(eslint|vitest\s+run|jest)\b/,
 	/^(npx\s+)?prettier\s+(--check|-c)\b/,

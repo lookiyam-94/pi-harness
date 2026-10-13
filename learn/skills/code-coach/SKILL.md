@@ -43,12 +43,12 @@ Two kinds of record, each in one place only:
 
 | What | Where | How |
 |---|---|---|
-| What they learned: probe results, concepts, quiz misses, what was unclear and how it was re-explained, review lessons | Trilium + local `.md` | `lesson start` / `lesson log` (see the `notes` skill) |
+| What they learned: probe results, concepts, quiz misses, what was unclear and how it was re-explained, review lessons | Obsidian vault | `lesson start` / `lesson log` (see the `notes` skill) |
 | Project working state: plan, milestone briefs, progress | `.coach/` in the project, committed with the code | `write` / `edit` |
 
 Never copy `.coach/` state into the lesson note; link the project path
-instead. In Trilium the lesson title is a main note with one child note per
-session, and diagrams (like the milestone map) are mermaid child notes made
+instead. In the vault each lesson is a folder with a main note linking one
+note per session, and diagrams (like the milestone map) are kept up to date
 with `lesson diagram`, as the `notes` skill describes.
 
 `.coach/` layout:
@@ -67,10 +67,10 @@ with `lesson diagram`, as the `notes` skill describes.
 **If `.coach/progress.md` exists**, you are resuming. Read `progress.md`,
 `plan.md`, the current milestone brief, and `git log --oneline -15` plus the
 latest diff. Read the earlier lesson notes: find the main note with
-`trilium find "<lesson title>"`, list its sessions with `trilium children`,
-and `trilium get` the latest one or two. Then run `lesson start` with the
-lesson title recorded in `progress.md`; it opens today's session note under
-the main note and adds the session heading to the local `.md`. Recap in two or
+`vault find "<lesson title>"`, list its sessions with `vault list` on its
+folder, and `vault get` the latest one or two. Then run `lesson start` with
+the lesson title recorded in `progress.md`; it opens today's session note
+under the main note. Recap in two or
 three sentences where they are and what is next, then continue the build
 loop.
 
@@ -84,7 +84,7 @@ First action, before any question:
    Creating `.coach/` turns the guard on.
 2. Take the topic from their opening message. If they haven't named one,
    ask that single question first.
-3. Search for earlier lessons on the topic (`trilium search`), then open the
+3. Search for earlier lessons on the topic (`vault search`), then open the
    lesson: `lesson start "Code: <topic>"`. Record that exact title in
    `progress.md`, since resuming sessions reuse it.
 
