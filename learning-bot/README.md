@@ -6,7 +6,7 @@
 **Progress:** SQLite for learning evidence and review dates; Obsidian remains the lesson notebook.
 
 This is not yet the full Pi teaching UI on a phone. The first version
-supports concept registration, due reviews, choices, free-text recall, hints
+supports short guided lessons, concept registration, due reviews, choices, free-text recall, hints
 and progress. Desktop Pi continues to handle dependency maps and code coaching.
 
 ## Requirements
@@ -58,6 +58,7 @@ No npm package dependencies.
 
 - /topic JavaScript — switch active topic
 - /add Promises — add a concept to that topic
+- /teach Promises — introduce one idea with a motivated explanation and application check
 - /review — free-form recall of a due concept
 - /quiz — multiple choice with Telegram buttons
 - /hint — reveal a clue without granting a mastery upgrade
@@ -98,7 +99,7 @@ once per Malta calendar date if at least one concept is due.
   does not automatically import concepts from old lesson notes.
 - Existing terminal-only interactive tools have not been ported to Telegram:
   the mobile bot uses its own question renderer.
-- The full probe → plan → teach and project diff-review loops remain in
+- The full multi-node probe → plan → teach and project diff-review loops remain in
   terminal Pi. They are future mobile features.
 - Language-model grading may be wrong. The bot is not an exam proctor.
 - There is no code-execution sandbox for learner submissions.
