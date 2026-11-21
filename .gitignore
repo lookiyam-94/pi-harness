@@ -9,8 +9,12 @@
 !/agents/
 !/extensions/
 !/learn/
+!/learning-bot/
 
 node_modules/
+**/data/
+*.sqlite
+*.sqlite-*
 .env*
 *.key
 *.pem
