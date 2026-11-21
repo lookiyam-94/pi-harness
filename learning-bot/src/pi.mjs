@@ -84,3 +84,26 @@ export async function gradeRecall(question, answer, { bin } = {}) {
     throw new Error("Invalid grade returned");
   return {correct:grade.correct, feedback:grade.feedback.slice(0,1500)};
 }
+
+
+// A bounded mobile teaching step; full dependency-map sessions remain in desktop Pi.
+export async function lessonFor(store, concept, { bin } = {}) {
+  const prompt = [
+    rules(),
+    "Teach exactly ONE idea in 100-180 words. Begin with a dependable foundation,",
+    "motivate why the idea is needed, then derive it using a specific example.",
+    "Make the relationship with any prerequisites explicit. Avoid unsupported universal claims.",
+    "After explaining, give a distinct, unfamiliar scenario requiring application,",
+    "rather than asking the learner to copy a sentence from the explanation.",
+    "Provide an objective rubric and answer-neutral hint. Don't reveal the test answer.",
+    "Return JSON only.",
+    'Schema: {"format":"recall","intro":"lesson text","question":"application question","rubric":"grading criteria","hint":"non-answer clue","explanation":"brief model answer"}',
+    "Topic data: "+JSON.stringify(concept.topic),
+    "Concept data: "+JSON.stringify(concept.title),
+    "Recent review evidence data: "+JSON.stringify(store.history(concept.id,4).map(a=>({correct:!!a.correct,feedback:String(a.feedback||"").slice(0,250)})))
+  ].join("\n\n");
+  const q=parseJson(await callPi(prompt,{bin}));
+  if(q.format!=="recall" || typeof q.intro!=="string" || q.intro.trim().length<100)
+    throw new Error("Pi returned an invalid mini-lesson");
+  return q;
+}
