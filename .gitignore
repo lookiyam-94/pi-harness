@@ -10,6 +10,8 @@
 !/extensions/
 !/learn/
 !/learning-bot/
+!/.github/
+!/.github/workflows/
 
 node_modules/
 **/data/
