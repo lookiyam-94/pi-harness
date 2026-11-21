@@ -1,5 +1,5 @@
 import { LearningStore } from "./store.mjs";
-import { questionFor, gradeRecall } from "./pi.mjs";
+import { questionFor, lessonFor, gradeRecall } from "./pi.mjs";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const allowed = process.env.TELEGRAM_CHAT_ID;
@@ -32,6 +32,7 @@ async function show(p) {
   const extra = p.format === "choice" ? {
     reply_markup:{inline_keyboard:p.options.map((label,i)=>[{text:label.slice(0,60),callback_data:"a:" + p.token + ":" + i}])}
   } : {};
+  if (p.intro) await send(p.intro);
   await send(plain(p), extra);
 }
 async function nextQuestion({format = "recall"} = {}) {
@@ -49,6 +50,15 @@ async function nextQuestion({format = "recall"} = {}) {
   await send("Reviewing: " + concept.topic + " / " + concept.title);
   const question = await questionFor(store,concept,{format});
   const pending = store.setPending(chat,concept.id,question);
+  return show(pending);
+}
+async function teachConcept(name) {
+  const topic = store.profile(chat).topic;
+  const title = name || store.due(Date.now(),topic)[0]?.title;
+  if (!title) return send("No concept is due. Choose one with /teach Promises.");
+  const c = store.addConcept(topic,title);
+  const q = await lessonFor(store,c);
+  const pending = store.setPending(chat,c.id,q);
   return show(pending);
 }
 async function choiceAnswer(payload) {
@@ -80,7 +90,7 @@ async function handleMessage(msg) {
   const value = space < 0 ? "" : input.slice(space + 1).trim();
   switch (cmd) {
     case "/start": case "/help":
-      return send("Learning bot\n/topic <subject> — choose an active subject\n/add <concept> — track something to learn\n/review — recall something due\n/quiz — multiple choice\n/hint — clue for current question\n/skip — skip current question without scoring\n/status — progress overview\n/pause — clear active question\n\nAnswers are saved after grading. Desktop Pi remains available separately.");
+      return send("Learning bot\n/topic <subject> — choose an active subject\n/add <concept> — track something to learn\n/review — recall something due\n/teach <concept> — short guided lesson\n/quiz — multiple choice\n/hint — clue for current question\n/skip — skip current question without scoring\n/status — progress overview\n/pause — clear active question\n\nAnswers are saved after grading. Desktop Pi remains available separately.");
     case "/topic":
       if (!value) return send("Active topic: " + store.profile(chat).topic + "\nUsage: /topic JavaScript");
       store.clearPending(chat); store.setTopic(chat,value);
@@ -89,7 +99,8 @@ async function handleMessage(msg) {
       if (!value) return send("Usage: /add Promises");
       const concept = store.addConcept(store.profile(chat).topic,value);
       return send("Tracked: " + concept.topic + " / " + concept.title + "\nUse /review to test it.");
-    case "/review": case "/learn": return nextQuestion({format:"recall"});
+    case "/review": return nextQuestion({format:"recall"});
+    case "/learn": case "/teach": return teachConcept(value);
     case "/quiz": return nextQuestion({format:"choice"});
     case "/hint": {
       const p = store.pending(chat);
